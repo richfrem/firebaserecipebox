@@ -111,9 +111,11 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
                 imageUrl = uploadedUrl;
             }
         }
+        
+        const { main_image, ...recipeDataForDb } = parsedInput.data;
 
         const newRecipeData = {
-            ...parsedInput.data,
+            ...recipeDataForDb,
             main_image_url: imageUrl,
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
@@ -175,8 +177,10 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }
         }
         
+        const { main_image, ...recipeDataForDb } = parsedInput.data;
+
         const updatedRecipeData = {
-            ...parsedInput.data,
+            ...recipeDataForDb,
             main_image_url: imageUrl || 'https://placehold.co/1200x800.png',
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
