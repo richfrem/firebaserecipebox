@@ -12,7 +12,6 @@ const firebaseConfig = {
   "storageBucket": "recipebox-ifiwn.appspot.com",
   "apiKey": "AIzaSyB35Sw8-YZiL7B7-ZBdv1JiP3tRNOYrWcw",
   "authDomain": "recipebox-ifiwn.web.app",
-  "measurementId": "G-5G3W8G5E1P",
   "messagingSenderId": "31517443304"
 };
 
