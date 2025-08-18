@@ -123,9 +123,12 @@ export const getRecipeById = async (id: string): Promise<Recipe | undefined> => 
 };
 
 export const addRecipe = async (recipe: Omit<Recipe, 'id' | 'created_at' | 'author'>): Promise<Recipe> => {
+  const highestId = mockRecipes.reduce((maxId, r) => Math.max(maxId, parseInt(r.id, 10)), 0);
+  const newId = (highestId + 1).toString();
+  
   const newRecipe: Recipe = {
     ...recipe,
-    id: (mockRecipes.length + 1).toString(),
+    id: newId,
     created_at: new Date().toISOString(),
     author: mockProfiles[0], // Mock author
   };
