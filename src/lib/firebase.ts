@@ -23,7 +23,8 @@ const storage: FirebaseStorage = getStorage(app);
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  'prompt': 'select_account'
+  'prompt': 'select_account',
+  'authDomain': firebaseConfig.authDomain,
 });
 
 const microsoftProvider = new OAuthProvider('microsoft.com');
