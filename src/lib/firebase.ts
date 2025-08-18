@@ -3,7 +3,14 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, OAuthProvider, type Auth } from "firebase/auth";
+import { 
+  initializeAuth, 
+  getAuth, 
+  GoogleAuthProvider, 
+  OAuthProvider, 
+  type Auth,
+  browserPopupRedirectResolver
+} from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,23 +24,19 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth = getAuth(app);
+
+// Correctly initialize Auth for complex environments
+const auth: Auth = typeof window !== 'undefined' 
+  ? initializeAuth(app, {
+      persistence: undefined, // Let the SDK manage persistence
+      popupRedirectResolver: browserPopupRedirectResolver,
+    })
+  : getAuth(app); // Use getAuth for server-side rendering
+
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
 
 const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-  'prompt': 'select_account',
-  // This is the critical line that explicitly tells Google's OAuth service which domain to use.
-  // This resolves issues in complex iframe environments like Firebase Studio.
-  'authDomain': firebaseConfig.authDomain,
-});
-
-
 const microsoftProvider = new OAuthProvider('microsoft.com');
-microsoftProvider.setCustomParameters({
-  tenant: 'common',
-});
-
 
 export { app, storage, db, auth, googleProvider, microsoftProvider };
