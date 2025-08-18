@@ -137,9 +137,9 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
         revalidatePath(`/recipe/${newRecipeId}`);
         return { data: finalRecipe };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating recipe:", error);
-        return { error: 'Failed to save the recipe. Please try again later.' };
+        return { error: `Failed to save the recipe: ${error.message}` };
     }
 }
 
@@ -198,8 +198,8 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
         revalidatePath('/');
         revalidatePath(`/recipe/${id}`);
         return { data: finalRecipe };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating recipe:", error);
-        return { error: 'Failed to update the recipe. Please try again later.' };
+        return { error: `Failed to update the recipe: ${error.message}` };
     }
 }
