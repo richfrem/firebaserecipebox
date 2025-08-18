@@ -3,18 +3,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow public read access to recipes
     match /recipes/{recipeId} {
-      // Unauthenticated users can read all recipes
       allow read: if true;
       
-      // Authenticated users can create recipes
+      // Allow authenticated users to create recipes
       allow create: if request.auth != null;
 
-      // Only the author of a recipe can update or delete it
-      allow update, delete: if request.auth != null && resource.data.user_id == request.auth.uid;
-    }
-    match /{document=**} {
-      allow read, write: if false;
+      // Allow users to update or delete only their own recipes
+      allow update, delete: if request.auth.uid == resource.data.user_id;
     }
   }
 }
