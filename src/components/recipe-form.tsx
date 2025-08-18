@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createRecipe } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 const recipeFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
@@ -31,6 +34,9 @@ type RecipeFormValues = z.infer<typeof recipeFormSchema>;
 
 export default function RecipeForm() {
   const { toast } = useToast();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const form = useForm<RecipeFormValues>({
     resolver: zodResolver(recipeFormSchema),
     defaultValues: {
@@ -55,13 +61,23 @@ export default function RecipeForm() {
   });
 
   function onSubmit(data: RecipeFormValues) {
-    console.log(data);
-    toast({
-      title: "Recipe Submitted!",
-      description: "Your new recipe has been saved successfully.",
+    startTransition(async () => {
+      const result = await createRecipe(data);
+
+      if (result.error) {
+        toast({
+          title: "Error Saving Recipe",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.data) {
+        toast({
+          title: "Recipe Submitted!",
+          description: "Your new recipe has been saved successfully.",
+        });
+        router.push(`/recipe/${result.data.id}`);
+      }
     });
-    // Here you would typically send the data to your backend/API
-    // For this example, we just log it.
   }
 
   return (
@@ -182,7 +198,9 @@ export default function RecipeForm() {
         </Card>
         
         <div className="flex justify-end">
-            <Button type="submit" size="lg">Save Recipe</Button>
+            <Button type="submit" size="lg" disabled={isPending}>
+                {isPending ? "Saving..." : "Save Recipe"}
+            </Button>
         </div>
       </form>
     </Form>

@@ -121,3 +121,14 @@ export const getRecipes = async (): Promise<Recipe[]> => {
 export const getRecipeById = async (id: string): Promise<Recipe | undefined> => {
   return Promise.resolve(mockRecipes.find(recipe => recipe.id === id));
 };
+
+export const addRecipe = async (recipe: Omit<Recipe, 'id' | 'created_at' | 'author'>): Promise<Recipe> => {
+  const newRecipe: Recipe = {
+    ...recipe,
+    id: (mockRecipes.length + 1).toString(),
+    created_at: new Date().toISOString(),
+    author: mockProfiles[0], // Mock author
+  };
+  mockRecipes.push(newRecipe);
+  return Promise.resolve(newRecipe);
+};

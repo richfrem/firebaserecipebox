@@ -22,6 +22,7 @@ export interface Recipe {
   cuisine_type: string;
   servings: number;
   main_image_url: string;
+  data_ai_hint: string;
   created_at: string;
   ingredients: Ingredient[];
   steps: Step[];
