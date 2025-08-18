@@ -1,17 +1,18 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow authenticated users to upload images to the 'recipes' folder.
-    // Restrict to common image types and a reasonable size (e.g., 5MB).
-    match /recipes/{imageId} {
-      allow write: if request.auth != null
-                   && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/jpeg|image/png|image/jpg');
-      
-      // Allow public read access to all images.
+    // Allow anyone to read images from the recipes folder
+    match /recipes/{allPaths=**} {
       allow read: if true;
+    }
+    
+    // Allow authenticated users to write to a path that includes their user ID.
+    // This is more secure and prevents users from overwriting each other's files.
+    match /recipes/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId &&
+                      request.resource.size < 5 * 1024 * 1024 &&
+                      request.resource.contentType.matches('image/.*');
     }
   }
 }
