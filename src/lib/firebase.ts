@@ -4,12 +4,10 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { 
-  initializeAuth, 
   getAuth, 
   GoogleAuthProvider, 
   OAuthProvider, 
   type Auth,
-  browserPopupRedirectResolver
 } from "firebase/auth";
 
 // Your web app's Firebase configuration
@@ -25,13 +23,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Correctly initialize Auth for complex environments
-const auth: Auth = typeof window !== 'undefined' 
-  ? initializeAuth(app, {
-      persistence: undefined, // Let the SDK manage persistence
-      popupRedirectResolver: browserPopupRedirectResolver,
-    })
-  : getAuth(app); // Use getAuth for server-side rendering
+const auth: Auth = getAuth(app);
+
+// This is a critical fix for dynamic environments like Firebase Studio.
+// It forces the SDK to associate auth requests with your specific project's tenant.
+auth.tenantId = 'recipebox-ifiwn.firebaseapp.com';
+
 
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
