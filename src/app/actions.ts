@@ -3,6 +3,7 @@
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
 import { addRecipe, updateRecipe } from '@/lib/mock-data';
 import type { Recipe } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 const scaleActionInputSchema = z.object({
@@ -86,6 +87,8 @@ export async function createRecipe(input: RecipeFormValues): Promise<ActionRespo
             }))
         };
         const newRecipe = await addRecipe(newRecipeData);
+        revalidatePath('/');
+        revalidatePath(`/recipe/${newRecipe.id}`);
         return { data: newRecipe };
     } catch (error) {
         console.error("Error creating recipe:", error);
@@ -122,6 +125,8 @@ export async function updateRecipeAction(id: string, input: RecipeFormValues): P
         if (!updatedRecipe) {
              return { error: 'Recipe not found or could not be updated.' };
         }
+        revalidatePath('/');
+        revalidatePath(`/recipe/${updatedRecipe.id}`);
         return { data: updatedRecipe };
     } catch (error) {
         console.error("Error updating recipe:", error);

@@ -89,8 +89,9 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
           title: `Recipe ${isEditMode ? 'Updated' : 'Submitted'}!`,
           description: `Your recipe has been ${isEditMode ? 'updated' : 'saved'} successfully.`,
         });
+        // We are now revalidating the path in the server action, so router.refresh() is not strictly needed here
+        // But we still want to navigate the user.
         router.push(`/recipe/${result.data.id}`);
-        router.refresh();
       }
     });
   }
