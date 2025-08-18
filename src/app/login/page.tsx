@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithApple, signInWithMicrosoft, user } = useAuth();
+  const { signInWithGoogle, signInWithMicrosoft, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -38,7 +38,6 @@ export default function LoginPage() {
            <div className="flex flex-col gap-4">
               <Button variant="outline" onClick={signInWithGoogle}><GoogleIcon className="mr-2 h-5 w-5" /> Sign in with Google</Button>
               <Button variant="outline" onClick={signInWithMicrosoft}><MicrosoftIcon className="mr-2 h-5 w-5" /> Sign in with Microsoft</Button>
-              <Button variant="outline" onClick={signInWithApple}><AppleIcon className="mr-2 h-5 w-5" /> Sign in with Apple</Button>
            </div>
         </CardContent>
       </Card>
