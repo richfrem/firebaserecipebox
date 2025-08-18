@@ -11,11 +11,15 @@ import {
   AuthProvider as FirebaseAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import { auth, googleProvider, microsoftProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { EmailFormValues } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { adminDb } from '@/lib/firebase-admin';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +33,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function createUserProfile(user: User) {
+    const userProfile = {
+        id: user.uid,
+        username: user.displayName || user.email?.split('@')[0] || 'Anonymous Chef',
+        avatar_url: user.photoURL || `https://placehold.co/100x100.png`,
+    };
+    await setDoc(doc(db, "users", user.uid), userProfile);
+}
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,12 +50,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    const handleUser = async (user: User | null) => {
+        if (user) {
+            setUser(user);
+            await createUserProfile(user);
+        } else {
+            setUser(null);
+        }
+        setLoading(false);
+    }
     // Check for redirect result
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
           toast({ title: 'Sign-in Successful', description: `Welcome, ${result.user.displayName}!` });
+          handleUser(result.user);
           router.push('/');
+        } else {
+            // This handles the normal onAuthStateChanged listener
+             const unsubscribe = onAuthStateChanged(auth, handleUser);
+             return () => unsubscribe();
         }
       })
       .catch((error) => {
@@ -51,20 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: error.message || 'An unknown error occurred during redirect.',
           variant: 'destructive',
         });
+         setLoading(false);
       });
       
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
   }, [router, toast]);
 
   const handleSignInWithProvider = async (provider: FirebaseAuthProvider) => {
     try {
       await signInWithRedirect(auth, provider);
-      // No need to do anything here, the useEffect will handle the result
     } catch (error: any) {
       console.error("Authentication redirect initiation error:", error);
       toast({
@@ -80,7 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = async ({email, password}: EmailFormValues) => {
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, {
+            displayName: email.split('@')[0],
+        });
+        await createUserProfile(userCredential.user);
         router.push('/');
     } catch (error: any) {
         console.error("Email sign up error:", error);

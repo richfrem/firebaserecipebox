@@ -1,17 +1,29 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public read access for all recipes
+
+    // Allow public read of all recipes
     match /recipes/{recipeId} {
       allow read: if true;
-      
-      // Allow create only if the user is logged in and the recipe's user_id
-      // matches their own auth uid.
+
+      // Allow create only if the user is authenticated and the user_id in the new document
+      // matches the UID of the user making the request.
       allow create: if request.auth != null && request.resource.data.user_id == request.auth.uid;
 
-      // Allow users to update or delete only their own recipes.
-      allow update, delete: if request.auth != null && resource.data.user_id == request.auth.uid;
+      // Allow update only if the user is authenticated and the user_id of the existing document
+      // matches the UID of the user making the request.
+      allow update: if request.auth != null && get(/databases/$(database)/documents/recipes/$(recipeId)).data.user_id == request.auth.uid;
+      
+      // Do not allow client-side deletes for now.
+      allow delete: if false;
+    }
+
+    // Allow users to read their own profile, but not others.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
   }
 }

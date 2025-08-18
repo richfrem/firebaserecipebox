@@ -1,18 +1,19 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow anyone to read images from the recipes folder
-    match /recipes/{allPaths=**} {
-      allow read: if true;
-    }
+    // Match any file path in the 'recipes' folder.
+    // The {userId} wildcard captures the user's ID from the path.
+    match /recipes/{userId}/{allPaths=**} {
     
-    // Allow authenticated users to write to a path that includes their user ID.
-    // This is more secure and prevents users from overwriting each other's files.
-    match /recipes/{userId}/{fileName} {
-      allow write: if request.auth != null && request.auth.uid == userId &&
-                      request.resource.size < 5 * 1024 * 1024 &&
-                      request.resource.contentType.matches('image/.*');
+      // Allow public read access to all images.
+      allow read: if true;
+      
+      // Allow create/write access only if the user is authenticated (request.auth != null)
+      // AND their UID matches the {userId} in the path.
+      // This prevents users from uploading files into another user's folder.
+      allow create, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

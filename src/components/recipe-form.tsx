@@ -88,15 +88,14 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
       const formData = new FormData();
       formData.append('user_id', user.uid);
       
-      // Handle file input separately
       const imageFiles = data.main_image as FileList;
       if (imageFiles && imageFiles.length > 0) {
         formData.append('main_image', imageFiles[0]);
       }
 
-      // Append other data
+      // Append other data, ensuring ingredients and steps are stringified
       Object.entries(data).forEach(([key, value]) => {
-          if (key === 'main_image') return; // already handled
+          if (key === 'main_image') return; 
           if (key === 'ingredients' || key === 'steps') {
             formData.append(key, JSON.stringify(value));
           } else if (value !== undefined && value !== null) {
@@ -129,6 +128,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
           description: `Your recipe has been ${isEditMode ? 'updated' : 'saved'} successfully.`,
         });
         router.push(`/recipe/${result.data.id}`);
+        router.refresh();
       }
     });
   }

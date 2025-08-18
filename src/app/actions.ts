@@ -2,13 +2,11 @@
 "use server";
 
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
-import { addRecipe, updateRecipe } from '@/lib/database';
 import type { Recipe } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth } from 'firebase-admin';
+import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const scaleActionInputSchema = z.object({
   ingredients: z.array(z.object({
@@ -47,7 +45,6 @@ const recipeFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters long."),
   cuisine_type: z.string().min(2, "Cuisine type is required."),
   servings: z.coerce.number({ invalid_type_error: "Servings must be a number" }).int().min(1, "Servings must be at least 1."),
-  main_image: z.any().optional(),
   ingredients: z.array(z.object({
     name: z.string().min(1, "Ingredient name is required."),
     quantity: z.coerce.number({ invalid_type_error: "Quantity must be a number" }).min(0.01, "Quantity must be positive."),
@@ -65,18 +62,34 @@ type ActionResponse = {
   validationErrors?: any;
 };
 
-async function uploadImageAndGetURL(image: File, userId: string) {
+async function uploadImageAndGetURL(image: File, userId: string): Promise<string | null> {
     if (!image || image.size === 0) return null;
 
     try {
-        const storageRef = ref(storage, `recipes/${userId}/${Date.now()}_${image.name}`);
-        const imageBuffer = await image.arrayBuffer();
-        await uploadBytes(storageRef, imageBuffer, { contentType: image.type });
-        const downloadURL = await getDownloadURL(storageRef);
-        return downloadURL;
+        const bucket = adminStorage.bucket();
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${image.name}`;
+        const filePath = `recipes/${userId}/${fileName}`;
+        
+        const buffer = Buffer.from(await image.arrayBuffer());
+
+        const file = bucket.file(filePath);
+        await file.save(buffer, {
+          metadata: {
+            contentType: image.type,
+          },
+        });
+
+        // Use a far-future expiration date for the signed URL
+        const [publicUrl] = await file.getSignedUrl({
+          action: 'read',
+          expires: '03-09-2491', 
+        });
+
+        return publicUrl;
     } catch(error) {
-        console.error("Error uploading image:", error);
-        throw error;
+        console.error("Error uploading image with Admin SDK:", error);
+        throw new Error("Image upload failed.");
     }
 }
 
@@ -85,27 +98,25 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
     const rawData = Object.fromEntries(formData.entries());
     const ingredients = JSON.parse(rawData.ingredients as string);
     const steps = JSON.parse(rawData.steps as string);
+    const imageFile = formData.get('main_image') as File | undefined;
+    const userId = rawData.user_id as string;
 
     const parsedInput = recipeFormSchema.safeParse({
         ...rawData,
         servings: parseInt(rawData.servings as string, 10),
-        main_image: rawData.main_image,
         ingredients,
         steps,
     });
 
-
     if (!parsedInput.success) {
         return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
-     if (!parsedInput.data.user_id) {
+     if (!userId) {
         return { error: 'You must be logged in to create a recipe.' };
     }
     
     try {
         let imageUrl = 'https://placehold.co/1200x800.png';
-        const imageFile = formData.get('main_image') as File | undefined;
-        const userId = parsedInput.data.user_id;
 
         if (imageFile && imageFile.size > 0) {
             const uploadedUrl = await uploadImageAndGetURL(imageFile, userId);
@@ -114,36 +125,34 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
             }
         }
         
-        const { main_image, ...recipeDataForDb } = parsedInput.data;
-
-        const newRecipeData = {
-            ...recipeDataForDb,
-            user_id: userId,
+        const recipeDataForDb = {
+            ...parsedInput.data,
             main_image_url: imageUrl,
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
                 step_number: index + 1,
                 instruction: step.instruction,
             })),
+            created_at: FieldValue.serverTimestamp(),
         };
 
-        const newRecipeId = await addRecipe(newRecipeData);
-        revalidatePath('/');
+        const newRecipeRef = await adminDb.collection('recipes').add(recipeDataForDb);
         
         const finalRecipe: Recipe = {
-            ...newRecipeData,
-            id: newRecipeId,
-            created_at: new Date().toISOString(),
-            ingredients: newRecipeData.ingredients.map(ing => ({...ing, id: '', recipe_id: newRecipeId})), 
-            steps: newRecipeData.steps.map(s => ({...s, id: '', recipe_id: newRecipeId})),
+            ...recipeDataForDb,
+            id: newRecipeRef.id,
+            created_at: new Date().toISOString(), 
+            ingredients: recipeDataForDb.ingredients.map(ing => ({...ing, id: '', recipe_id: newRecipeRef.id})), 
+            steps: recipeDataForDb.steps.map(s => ({...s, id: '', recipe_id: newRecipeRef.id})),
         }
-
-        revalidatePath(`/recipe/${newRecipeId}`);
+        
+        revalidatePath('/');
+        revalidatePath(`/recipe/${newRecipeRef.id}`);
         return { data: finalRecipe };
 
     } catch (error: any) {
         console.error("Error creating recipe:", error);
-        return { error: `Failed to save the recipe: ${error.message}` };
+        return { error: `Failed to save the recipe. ${error.message}` };
     }
 }
 
@@ -151,28 +160,26 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
     const rawData = Object.fromEntries(formData.entries());
     const ingredients = JSON.parse(rawData.ingredients as string);
     const steps = JSON.parse(rawData.steps as string);
+    const newImageFile = formData.get('main_image') as File | undefined;
+    const userId = rawData.user_id as string;
 
     const parsedInput = recipeFormSchema.safeParse({
         ...rawData,
         servings: parseInt(rawData.servings as string, 10),
-        main_image: rawData.main_image,
         ingredients,
         steps,
     });
 
-
     if (!parsedInput.success) {
         return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
-    if (!parsedInput.data.user_id) {
+    if (!userId) {
         return { error: 'You must be logged in to update a recipe.' };
     }
     
     try {
         let imageUrl = rawData.existing_main_image_url as string;
-        const newImageFile = formData.get('main_image') as File | undefined;
-        const userId = parsedInput.data.user_id;
-
+        
         if (newImageFile && newImageFile.size > 0) {
             const uploadedUrl = await uploadImageAndGetURL(newImageFile, userId);
             if (uploadedUrl) {
@@ -180,11 +187,8 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }
         }
         
-        const { main_image, ...recipeDataForDb } = parsedInput.data;
-
         const updatedRecipeData = {
-            ...recipeDataForDb,
-            user_id: userId,
+            ...parsedInput.data,
             main_image_url: imageUrl || 'https://placehold.co/1200x800.png',
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
@@ -193,7 +197,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }))
         };
         
-        await updateRecipe(id, updatedRecipeData);
+        await adminDb.collection('recipes').doc(id).update(updatedRecipeData);
 
         const finalRecipe: Recipe = {
              id: id,
@@ -208,6 +212,6 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
         return { data: finalRecipe };
     } catch (error: any) {
         console.error("Error updating recipe:", error);
-        return { error: `Failed to update the recipe: ${error.message}` };
+        return { error: `Failed to update the recipe. ${error.message}` };
     }
 }
