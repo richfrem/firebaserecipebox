@@ -15,30 +15,18 @@ const firebaseConfig = {
   "appId": "1:31517443304:web:e6cbc2189a4eeaa489355d"
 };
 
-// Singleton pattern to ensure Firebase is initialized only once
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
-let googleProvider: GoogleAuthProvider;
-let microsoftProvider: OAuthProvider;
+// Initialize Firebase
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
-if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
-}
-
-auth = getAuth(app);
-db = getFirestore(app);
-storage = getStorage(app);
-
-googleProvider = new GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   'prompt': 'select_account'
 });
 
-microsoftProvider = new OAuthProvider('microsoft.com');
+const microsoftProvider = new OAuthProvider('microsoft.com');
 microsoftProvider.setCustomParameters({
   tenant: 'common',
 });
