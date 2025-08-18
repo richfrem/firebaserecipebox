@@ -103,7 +103,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
     
     try {
         let imageUrl = 'https://placehold.co/1200x800.png';
-        const imageFile = parsedInput.data.main_image as File | undefined;
+        const imageFile = formData.get('main_image') as File | undefined;
 
         if (imageFile && imageFile.size > 0) {
             const uploadedUrl = await uploadImageAndGetURL(imageFile);
@@ -166,7 +166,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
     
     try {
         let imageUrl = rawData.existing_main_image_url as string;
-        const newImageFile = parsedInput.data.main_image as File | undefined;
+        const newImageFile = formData.get('main_image') as File | undefined;
 
         if (newImageFile && newImageFile.size > 0) {
             const uploadedUrl = await uploadImageAndGetURL(newImageFile);
