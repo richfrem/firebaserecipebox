@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFieldArray, useForm } from "react-hook-form";
@@ -156,19 +157,19 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
                 </FormItem>
               )} />
             </div>
+            {isEditMode && recipe?.main_image_url && (
+                <div>
+                    <p className="text-sm text-muted-foreground mb-2">Current Image:</p>
+                    <img src={recipe.main_image_url} alt={recipe.title} className="w-48 h-auto rounded-md mb-4" />
+                </div>
+            )}
             <FormField control={form.control} name="main_image" render={({ field: { onChange, value, ...rest }}) => (
               <FormItem>
-                <FormLabel>Main Image</FormLabel>
+                <FormLabel>{isEditMode ? "Upload New Image" : "Main Image"}</FormLabel>
                  <FormControl><Input type="file" {...rest} onChange={(e) => onChange(e.target.files)} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-             {isEditMode && recipe?.main_image_url && (
-                <div>
-                    <p className="text-sm text-muted-foreground mb-2">Current Image:</p>
-                    <img src={recipe.main_image_url} alt={recipe.title} className="w-48 h-auto rounded-md" />
-                </div>
-            )}
           </CardContent>
         </Card>
         
@@ -250,3 +251,5 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
     </Form>
   );
 }
+
+    
