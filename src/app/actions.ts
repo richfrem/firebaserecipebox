@@ -1,3 +1,4 @@
+
 "use server";
 
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
@@ -152,10 +153,11 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
     }
     
     try {
-        let imageUrl = rawData.existing_main_image_url as string || 'https://placehold.co/1200x800.png';
+        let imageUrl = rawData.existing_main_image_url as string;
+        const newImageFile = parsedInput.data.main_image;
 
-        if (parsedInput.data.main_image && parsedInput.data.main_image.size > 0) {
-            const uploadedUrl = await uploadImageAndGetURL(parsedInput.data.main_image);
+        if (newImageFile && newImageFile.size > 0) {
+            const uploadedUrl = await uploadImageAndGetURL(newImageFile);
             if (uploadedUrl) {
                 imageUrl = uploadedUrl;
             }
@@ -163,7 +165,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
         
         const updatedRecipeData = {
             ...parsedInput.data,
-            main_image_url: imageUrl,
+            main_image_url: imageUrl || 'https://placehold.co/1200x800.png',
             user_id: 'user-1', // Mock user id
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
