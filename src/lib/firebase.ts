@@ -1,9 +1,9 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth, GoogleAuthProvider, AppleAuthProvider, MicrosoftAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,10 +16,15 @@ const firebaseConfig = {
   "messagingSenderId": "31517443304"
 };
 
-
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const storage = getStorage(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { app, storage, db };
+const googleProvider = new GoogleAuthProvider();
+const appleProvider = new AppleAuthProvider();
+const microsoftProvider = new MicrosoftAuthProvider();
+
+
+export { app, storage, db, auth, googleProvider, appleProvider, microsoftProvider };

@@ -15,6 +15,7 @@ import { createRecipe, updateRecipeAction } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import type { Recipe } from "@/lib/types";
+import { useAuth } from "@/context/auth-context";
 
 const recipeFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
@@ -42,6 +43,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { user } = useAuth();
 
   const isEditMode = !!recipe;
 
@@ -77,8 +79,14 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
   const imageRef = form.register("main_image");
 
   function onSubmit(data: RecipeFormValues) {
+    if (!user) {
+        toast({ title: "Authentication Error", description: "You must be logged in to save a recipe.", variant: "destructive"});
+        return;
+    }
+
     startTransition(async () => {
       const formData = new FormData();
+      formData.append('user_id', user.uid);
       
       // Handle file input separately
       const imageFiles = data.main_image as FileList;
@@ -247,7 +255,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
         </Card>
         
         <div className="flex justify-end">
-            <Button type="submit" size="lg" disabled={isPending}>
+            <Button type="submit" size="lg" disabled={isPending || !user}>
                 {isPending ? "Saving..." : (isEditMode ? "Save Changes" : "Save Recipe")}
             </Button>
         </div>

@@ -8,6 +8,20 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth } from 'firebase-admin';
+import { getAuth } from 'firebase/auth/web-extension';
+import { headers } from 'next/headers';
+import { getApp } from 'firebase/app';
+
+
+async function getAuthenticatedUser() {
+    // This is a placeholder for a more robust auth check.
+    // In a real app, you'd get the user from the session or a token.
+    // For now, we assume if someone is calling this, they are "logged in".
+    // A more secure approach would be to verify a token passed from the client.
+    return { uid: 'user-1' }; // MOCK
+}
+
 
 const scaleActionInputSchema = z.object({
   ingredients: z.array(z.object({
@@ -55,6 +69,7 @@ const recipeFormSchema = z.object({
   steps: z.array(z.object({
     instruction: z.string().min(5, "Instruction is too short.")
   })).min(1, "At least one step is required."),
+  user_id: z.string(),
 });
 
 type ActionResponse = {
@@ -96,6 +111,9 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
     if (!parsedInput.success) {
         return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
+     if (!parsedInput.data.user_id) {
+        return { error: 'You must be logged in to create a recipe.' };
+    }
     
     try {
         let imageUrl = 'https://placehold.co/1200x800.png';
@@ -111,7 +129,6 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
         const newRecipeData = {
             ...parsedInput.data,
             main_image_url: imageUrl,
-            user_id: 'user-1', // Mock user id
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
                 step_number: index + 1,
@@ -157,6 +174,9 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
     if (!parsedInput.success) {
         return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
+    if (!parsedInput.data.user_id) {
+        return { error: 'You must be logged in to update a recipe.' };
+    }
     
     try {
         let imageUrl = rawData.existing_main_image_url as string;
@@ -183,7 +203,6 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 
         const finalRecipe: Recipe = {
              id: id,
-             user_id: 'user-1', // Mock user id
              created_at: new Date().toISOString(), // This should come from DB really
             ...updatedRecipeData,
             ingredients: updatedRecipeData.ingredients.map(ing => ({...ing, id: '', recipe_id: id})),
