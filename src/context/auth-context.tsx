@@ -4,13 +4,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithRedirect, 
+  signInWithPopup,
   signOut as firebaseSignOut, 
   User, 
   AuthProvider as FirebaseAuthProvider,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  getRedirectResult
 } from 'firebase/auth';
 import { auth, googleProvider, microsoftProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -36,38 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for redirect result
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // This is the signed-in user from the redirect.
-          toast({ title: 'Sign-in Successful', description: `Welcome, ${result.user.displayName}!` });
-          router.push('/');
-        }
-      })
-      .catch((error) => {
-        console.error("Authentication redirect error:", error);
-        toast({
-          title: 'Authentication Error',
-          description: error.message || 'An unknown error occurred during redirect.',
-          variant: 'destructive',
-        });
-      });
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router, toast]);
+  }, []);
 
   const handleSignInWithProvider = async (provider: FirebaseAuthProvider) => {
     try {
-      await signInWithRedirect(auth, provider);
-      // No need to do anything here, the useEffect will handle the result
+      const result = await signInWithPopup(auth, provider);
+      toast({ title: 'Sign-in Successful', description: `Welcome, ${result.user.displayName}!` });
+      router.push('/');
     } catch (error: any) {
-      console.error("Authentication redirect initiation error:", error);
+      console.error("Authentication popup error:", error);
       toast({
           title: 'Authentication Error',
           description: error.message || 'An unknown error occurred.',

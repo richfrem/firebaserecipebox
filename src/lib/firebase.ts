@@ -24,12 +24,6 @@ const firebaseConfig = {
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth: Auth = getAuth(app);
-
-// This is a critical fix for dynamic environments like Firebase Studio.
-// It forces the SDK to associate auth requests with your specific project's tenant.
-auth.tenantId = 'recipebox-ifiwn.firebaseapp.com';
-
-
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
 
