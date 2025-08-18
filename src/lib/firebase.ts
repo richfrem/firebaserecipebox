@@ -22,6 +22,10 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  'authDomain': 'recipebox-ifiwn.firebaseapp.com'
+});
+
 const microsoftProvider = new OAuthProvider('microsoft.com');
 microsoftProvider.setCustomParameters({
   // Use the v2.0 endpoint for Microsoft accounts (personal & work/school)
