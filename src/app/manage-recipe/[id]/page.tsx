@@ -1,5 +1,5 @@
 import RecipeForm from "@/components/recipe-form";
-import { getRecipeById } from "@/lib/mock-data";
+import { getRecipeById } from "@/lib/database";
 import { notFound } from "next/navigation";
 
 export default async function ManageRecipePage({ params }: { params: { id: string } }) {

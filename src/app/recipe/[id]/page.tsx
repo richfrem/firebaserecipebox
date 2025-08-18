@@ -1,4 +1,4 @@
-import { getRecipeById } from '@/lib/mock-data';
+import { getRecipeById } from '@/lib/database';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -69,8 +69,8 @@ export default async function RecipePage({ params }: { params: { id: string } })
             <div className="md:col-span-2">
               <h2 className="font-headline text-3xl font-semibold mb-4">Instructions</h2>
               <ol className="space-y-6">
-                {recipe.steps.map((step) => (
-                  <li key={step.id} className="flex gap-4">
+                {recipe.steps.map((step, index) => (
+                  <li key={index} className="flex gap-4">
                     <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold text-lg">
                       {step.step_number}
                     </div>

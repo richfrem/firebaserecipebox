@@ -1,5 +1,5 @@
 import RecipeCard from '@/components/recipe-card';
-import { getRecipes } from '@/lib/mock-data';
+import { getRecipes } from '@/lib/database';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
