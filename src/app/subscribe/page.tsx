@@ -53,10 +53,10 @@ export default function SubscribePage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Button onClick={signInWithGoogle}>
+            <Button variant="outline" onClick={signInWithGoogle}>
               <GoogleIcon className="mr-2 h-5 w-5" /> Sign up with Google
             </Button>
-            <Button onClick={signInWithMicrosoft}>
+            <Button variant="outline" onClick={signInWithMicrosoft}>
               <MicrosoftIcon className="mr-2 h-5 w-5" /> Sign up with Microsoft
             </Button>
           </div>

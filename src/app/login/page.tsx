@@ -75,6 +75,7 @@ export default function LoginPage() {
               )} />
               <FormField control={form.control} name="password" render={({ field }) => (
                 <FormItem>
+
                   <FormLabel>Password</FormLabel>
                   <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                   <FormMessage />

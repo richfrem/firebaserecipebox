@@ -14,6 +14,7 @@ import {
 import { auth, googleProvider, microsoftProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { EmailFormValues } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -45,9 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signInWithPopup(auth, provider);
       router.push('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      // Here you would typically show a toast notification to the user
+      toast({
+          title: 'Authentication Error',
+          description: error.message || 'An unknown error occurred.',
+          variant: 'destructive',
+      });
     }
   };
 
@@ -58,8 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         await createUserWithEmailAndPassword(auth, email, password);
         router.push('/');
-    } catch (error) {
+    } catch (error: any) {
         console.error("Email sign up error:", error);
+        toast({
+          title: 'Sign Up Error',
+          description: error.message || 'Failed to create an account.',
+          variant: 'destructive',
+      });
     }
   }
 
@@ -67,8 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         router.push('/');
-    } catch (error) {
+    } catch (error: any) {
         console.error("Email sign in error:", error);
+        toast({
+          title: 'Sign In Error',
+          description: error.message || 'Failed to sign in.',
+          variant: 'destructive',
+      });
     }
   }
 
@@ -77,8 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await firebaseSignOut(auth);
       router.push('/login');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign out error:", error);
+      toast({
+          title: 'Sign Out Error',
+          description: error.message || 'Failed to sign out.',
+          variant: 'destructive',
+      });
     }
   };
 
