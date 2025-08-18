@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import RecipeScaler from '@/components/recipe-scaler';
-import { Clock, User, UtensilsCrossed } from 'lucide-react';
+import { Clock, Pencil, User, UtensilsCrossed } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default async function RecipePage({ params }: { params: { id: string } }) {
   const recipe = await getRecipeById(params.id);
@@ -26,6 +28,13 @@ export default async function RecipePage({ params }: { params: { id: string } })
             className="object-cover"
             data-ai-hint={recipe.data_ai_hint}
           />
+           <div className="absolute top-4 right-4">
+              <Button asChild>
+                <Link href={`/manage-recipe/${recipe.id}`}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit Recipe
+                </Link>
+              </Button>
+            </div>
         </div>
         <div className="p-6 md:p-8">
           <Badge variant="secondary">{recipe.cuisine_type}</Badge>

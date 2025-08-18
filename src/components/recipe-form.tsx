@@ -10,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createRecipe } from "@/app/actions";
+import { createRecipe, updateRecipeAction } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import type { Recipe } from "@/lib/types";
 
 const recipeFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
@@ -32,14 +33,21 @@ const recipeFormSchema = z.object({
 
 type RecipeFormValues = z.infer<typeof recipeFormSchema>;
 
-export default function RecipeForm() {
+interface RecipeFormProps {
+    recipe?: Recipe;
+}
+
+export default function RecipeForm({ recipe }: RecipeFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<RecipeFormValues>({
-    resolver: zodResolver(recipeFormSchema),
-    defaultValues: {
+  const isEditMode = !!recipe;
+
+  const defaultValues = isEditMode && recipe ? {
+      ...recipe,
+      steps: recipe.steps.map(s => ({ instruction: s.instruction })),
+  } : {
       title: "",
       description: "",
       cuisine_type: "",
@@ -47,7 +55,11 @@ export default function RecipeForm() {
       main_image_url: "",
       ingredients: [{ name: "", quantity: 1, unit: "" }],
       steps: [{ instruction: "" }],
-    },
+  }
+
+  const form = useForm<RecipeFormValues>({
+    resolver: zodResolver(recipeFormSchema),
+    defaultValues,
   });
 
   const { fields: ingredientFields, append: appendIngredient, remove: removeIngredient } = useFieldArray({
@@ -62,7 +74,9 @@ export default function RecipeForm() {
 
   function onSubmit(data: RecipeFormValues) {
     startTransition(async () => {
-      const result = await createRecipe(data);
+      const result = isEditMode && recipe 
+        ? await updateRecipeAction(recipe.id, data)
+        : await createRecipe(data);
 
       if (result.error) {
         toast({
@@ -72,10 +86,11 @@ export default function RecipeForm() {
         });
       } else if (result.data) {
         toast({
-          title: "Recipe Submitted!",
-          description: "Your new recipe has been saved successfully.",
+          title: `Recipe ${isEditMode ? 'Updated' : 'Submitted'}!`,
+          description: `Your recipe has been ${isEditMode ? 'updated' : 'saved'} successfully.`,
         });
         router.push(`/recipe/${result.data.id}`);
+        router.refresh();
       }
     });
   }
@@ -199,7 +214,7 @@ export default function RecipeForm() {
         
         <div className="flex justify-end">
             <Button type="submit" size="lg" disabled={isPending}>
-                {isPending ? "Saving..." : "Save Recipe"}
+                {isPending ? "Saving..." : (isEditMode ? "Save Changes" : "Save Recipe")}
             </Button>
         </div>
       </form>

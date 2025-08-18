@@ -1,7 +1,7 @@
 "use server";
 
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
-import { addRecipe } from '@/lib/mock-data';
+import { addRecipe, updateRecipe } from '@/lib/mock-data';
 import type { Recipe } from '@/lib/types';
 import { z } from 'zod';
 
@@ -55,12 +55,12 @@ const recipeFormSchema = z.object({
 
 type RecipeFormValues = z.infer<typeof recipeFormSchema>;
 
-type CreateActionResponse = {
+type ActionResponse = {
   data?: Recipe;
   error?: string;
 };
 
-export async function createRecipe(input: RecipeFormValues): Promise<CreateActionResponse> {
+export async function createRecipe(input: RecipeFormValues): Promise<ActionResponse> {
     const parsedInput = recipeFormSchema.safeParse(input);
 
     if (!parsedInput.success) {
@@ -90,5 +90,41 @@ export async function createRecipe(input: RecipeFormValues): Promise<CreateActio
     } catch (error) {
         console.error("Error creating recipe:", error);
         return { error: 'Failed to save the recipe. Please try again later.' };
+    }
+}
+
+export async function updateRecipeAction(id: string, input: RecipeFormValues): Promise<ActionResponse> {
+    const parsedInput = recipeFormSchema.safeParse(input);
+
+    if (!parsedInput.success) {
+        return { error: 'Invalid input. Please check your recipe details.' };
+    }
+    
+    try {
+        const updatedRecipeData = {
+            ...parsedInput.data,
+            user_id: 'user-1', // Mock user id
+            main_image_url: parsedInput.data.main_image_url || 'https://placehold.co/1200x800.png',
+            data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
+            steps: parsedInput.data.steps.map((step, index) => ({
+                id: `s-upd-${id}-${index}`,
+                recipe_id: id,
+                step_number: index + 1,
+                instruction: step.instruction,
+            })),
+            ingredients: parsedInput.data.ingredients.map((ing, index) => ({
+                ...ing,
+                id: `i-upd-${id}-${index}`,
+                recipe_id: id,
+            }))
+        };
+        const updatedRecipe = await updateRecipe(id, updatedRecipeData);
+        if (!updatedRecipe) {
+             return { error: 'Recipe not found or could not be updated.' };
+        }
+        return { data: updatedRecipe };
+    } catch (error) {
+        console.error("Error updating recipe:", error);
+        return { error: 'Failed to update the recipe. Please try again later.' };
     }
 }

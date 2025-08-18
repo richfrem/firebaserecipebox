@@ -6,7 +6,7 @@ const mockProfiles: Profile[] = [
   { id: 'user-2', username: 'GourmetGary', avatar_url: 'https://placehold.co/100x100.png' },
 ];
 
-const mockRecipes: Recipe[] = [
+let mockRecipes: Recipe[] = [
   {
     id: '1',
     user_id: 'user-1',
@@ -131,4 +131,21 @@ export const addRecipe = async (recipe: Omit<Recipe, 'id' | 'created_at' | 'auth
   };
   mockRecipes.push(newRecipe);
   return Promise.resolve(newRecipe);
+};
+
+export const updateRecipe = async (id: string, recipeData: Omit<Recipe, 'id' | 'created_at' | 'author'>): Promise<Recipe | undefined> => {
+  const recipeIndex = mockRecipes.findIndex(r => r.id === id);
+  if (recipeIndex === -1) {
+    return Promise.resolve(undefined);
+  }
+
+  const existingRecipe = mockRecipes[recipeIndex];
+
+  const updatedRecipe: Recipe = {
+    ...existingRecipe,
+    ...recipeData,
+  };
+
+  mockRecipes[recipeIndex] = updatedRecipe;
+  return Promise.resolve(updatedRecipe);
 };
