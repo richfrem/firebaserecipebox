@@ -1,23 +1,29 @@
 
 "use client";
 
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { GoogleIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { GoogleIcon, MicrosoftIcon } from "@/components/icons";
 import { useAuth } from "@/context/auth-context";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import type { EmailFormValues } from "@/lib/types";
+
+const formSchema = z.object({
+  email: z.string().email("Invalid email address."),
+  password: z.string().min(6, "Password must be at least 6 characters."),
+});
+
 
 export default function SubscribePage() {
-  const { signInWithGoogle, user } = useAuth();
+  const { user, signInWithGoogle, signInWithMicrosoft, signUpWithEmail } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -26,6 +32,17 @@ export default function SubscribePage() {
     }
   }, [user, router]);
 
+  const form = useForm<EmailFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = (values: EmailFormValues) => {
+    signUpWithEmail(values);
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center p-4">
@@ -35,22 +52,44 @@ export default function SubscribePage() {
           <CardDescription>Create an account to save and manage your recipes.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Button onClick={signInWithGoogle}><GoogleIcon className="mr-2 h-5 w-5" /> Sign up with Google</Button>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">OR</span>
-              <Separator className="flex-1" />
-            </div>
-
-            <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Button variant="link" className="p-0 h-auto" asChild>
-                    <Link href="/login">Sign In</Link>
-                </Button>
-            </p>
+          <div className="flex flex-col gap-2">
+            <Button onClick={signInWithGoogle}>
+              <GoogleIcon className="mr-2 h-5 w-5" /> Sign up with Google
+            </Button>
+            <Button onClick={signInWithMicrosoft}>
+              <MicrosoftIcon className="mr-2 h-5 w-5" /> Sign up with Microsoft
+            </Button>
+          </div>
+          <div className="flex items-center gap-4">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField control={form.control} name="email" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="password" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <Button type="submit" className="w-full">Sign Up with Email</Button>
+            </form>
+          </Form>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Button variant="link" className="p-0 h-auto" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+          </p>
         </CardContent>
       </Card>
     </div>

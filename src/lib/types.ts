@@ -1,3 +1,6 @@
+
+import { z } from "zod";
+
 export interface Ingredient {
   id: string;
   recipe_id: string;
@@ -34,3 +37,10 @@ export interface Profile {
   username: string;
   avatar_url?: string;
 }
+
+const emailFormSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+export type EmailFormValues = z.infer<typeof emailFormSchema>;
