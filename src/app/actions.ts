@@ -8,20 +8,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth } from 'firebase-admin';
-import { getAuth } from 'firebase/auth/web-extension';
-import { headers } from 'next/headers';
-import { getApp } from 'firebase/app';
-
-
-async function getAuthenticatedUser() {
-    // This is a placeholder for a more robust auth check.
-    // In a real app, you'd get the user from the session or a token.
-    // For now, we assume if someone is calling this, they are "logged in".
-    // A more secure approach would be to verify a token passed from the client.
-    return { uid: 'user-1' }; // MOCK
-}
-
 
 const scaleActionInputSchema = z.object({
   ingredients: z.array(z.object({
