@@ -10,3 +10,14 @@ export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function MicrosoftIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48" {...props}>
+      <path fill="#f35325" d="M22 22H4V4h18z"/>
+      <path fill="#81bc06" d="M46 22H24V4h22z"/>
+      <path fill="#05a6f0" d="M22 46H4V24h18z"/>
+      <path fill="#ffba08" d="M46 46H24V24h22z"/>
+    </svg>
+  )
+}
