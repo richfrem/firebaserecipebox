@@ -24,6 +24,12 @@ const auth = getAuth(app);
 
 const googleProvider = new GoogleAuthProvider();
 const microsoftProvider = new OAuthProvider('microsoft.com');
+microsoftProvider.setCustomParameters({
+  // Use the v2.0 endpoint for Microsoft accounts (personal & work/school)
+  tenant: 'common',
+   // Request the necessary permissions
+  prompt: 'select_account',
+});
 
 
 export { app, storage, db, auth, googleProvider, microsoftProvider };
