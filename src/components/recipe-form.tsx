@@ -117,8 +117,6 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
       }
     });
   }
-  
-  const imageRef = form.register("main_image");
 
   return (
     <Form {...form}>
@@ -158,10 +156,10 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
                 </FormItem>
               )} />
             </div>
-            <FormField control={form.control} name="main_image" render={({ field }) => (
+            <FormField control={form.control} name="main_image" render={({ field: { onChange, value, ...rest }}) => (
               <FormItem>
                 <FormLabel>Main Image</FormLabel>
-                 <FormControl><Input type="file" {...imageRef} /></FormControl>
+                 <FormControl><Input type="file" {...rest} onChange={(e) => onChange(e.target.files)} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
@@ -218,7 +216,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
         <Card>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Steps</CardTitle>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
                 {stepFields.map((field, index) => (
                     <div key={field.id} className="flex gap-2 items-start">
