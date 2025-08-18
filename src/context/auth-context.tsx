@@ -45,8 +45,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignInWithProvider = async (provider: FirebaseAuthProvider) => {
     try {
-      // Explicitly set the authDomain to ensure correct origin validation
-      auth.config.authDomain = "recipebox-ifiwn.firebaseapp.com";
       await signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
