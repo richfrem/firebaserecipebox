@@ -115,35 +115,7 @@ const mockRecipes: Recipe[] = [
 ];
 
 export const getRecipes = async (): Promise<Recipe[]> => {
-  // Add a fourth recipe for better grid display
-  const allRecipes = [...mockRecipes];
-  if (allRecipes.length === 3) {
-      allRecipes.push({
-        id: '4',
-        user_id: 'user-2',
-        title: 'Chocolate Avocado Mousse',
-        description: 'A surprisingly delicious and healthy dessert that uses avocado for a creamy texture.',
-        cuisine_type: 'Dessert',
-        servings: 4,
-        main_image_url: 'https://placehold.co/1200x800.png',
-        data_ai_hint: 'chocolate mousse',
-        created_at: new Date().toISOString(),
-        author: mockProfiles[1],
-        ingredients: [
-          { id: 'i4-1', recipe_id: '4', name: 'Ripe avocados', quantity: 2, unit: 'count' },
-          { id: 'i4-2', recipe_id: '4', name: 'Unsweetened cocoa powder', quantity: 0.5, unit: 'cup' },
-          { id: 'i4-3', recipe_id: '4', name: 'Maple syrup', quantity: 0.5, unit: 'cup' },
-          { id: 'i4-4', recipe_id: '4', name: 'Non-dairy milk', quantity: 0.25, unit: 'cup' },
-          { id: 'i4-5', recipe_id: '4', name: 'Vanilla extract', quantity: 1, unit: 'tsp' },
-        ],
-        steps: [
-            { id: 's4-1', recipe_id: '4', step_number: 1, instruction: 'Combine all ingredients in a high-speed blender.' },
-            { id: 's4-2', recipe_id: '4', step_number: 2, instruction: 'Blend until completely smooth, scraping down the sides as needed.' },
-            { id: 's4-3', recipe_id: '4', step_number: 3, instruction: 'Divide the mousse into serving dishes and chill for at least 30 minutes before serving.' },
-        ],
-      });
-  }
-  return Promise.resolve(allRecipes);
+  return Promise.resolve(mockRecipes);
 };
 
 export const getRecipeById = async (id: string): Promise<Recipe | undefined> => {
