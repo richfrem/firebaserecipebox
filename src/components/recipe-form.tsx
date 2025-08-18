@@ -73,18 +73,24 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
     control: form.control,
     name: "steps",
   });
+  
+  const imageRef = form.register("main_image");
 
   function onSubmit(data: RecipeFormValues) {
     startTransition(async () => {
       const formData = new FormData();
       
+      // Handle file input separately
+      const imageFiles = data.main_image as FileList;
+      if (imageFiles && imageFiles.length > 0) {
+        formData.append('main_image', imageFiles[0]);
+      }
+
+      // Append other data
       Object.entries(data).forEach(([key, value]) => {
+          if (key === 'main_image') return; // already handled
           if (key === 'ingredients' || key === 'steps') {
             formData.append(key, JSON.stringify(value));
-          } else if (key === 'main_image' && value instanceof FileList) {
-             if (value.length > 0) {
-               formData.append(key, value[0]);
-             }
           } else if (value !== undefined && value !== null) {
               formData.append(key, String(value));
           }
@@ -163,13 +169,11 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
                     <img src={recipe.main_image_url} alt={recipe.title} className="w-48 h-auto rounded-md mb-4" />
                 </div>
             )}
-            <FormField control={form.control} name="main_image" render={({ field: { onChange, value, ...rest }}) => (
-              <FormItem>
+            <FormItem>
                 <FormLabel>{isEditMode ? "Upload New Image" : "Main Image"}</FormLabel>
-                 <FormControl><Input type="file" {...rest} onChange={(e) => onChange(e.target.files)} /></FormControl>
+                 <FormControl><Input type="file" {...imageRef} /></FormControl>
                 <FormMessage />
-              </FormItem>
-            )} />
+            </FormItem>
           </CardContent>
         </Card>
         
@@ -251,5 +255,3 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
     </Form>
   );
 }
-
-    
