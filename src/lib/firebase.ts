@@ -24,8 +24,11 @@ const storage: FirebaseStorage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   'prompt': 'select_account',
+  // This is the critical line that explicitly tells Google's OAuth service which domain to use.
+  // This resolves issues in complex iframe environments like Firebase Studio.
   'authDomain': firebaseConfig.authDomain,
 });
+
 
 const microsoftProvider = new OAuthProvider('microsoft.com');
 microsoftProvider.setCustomParameters({
