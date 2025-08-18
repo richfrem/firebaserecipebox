@@ -20,7 +20,7 @@ const recipeFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters long."),
   cuisine_type: z.string().min(2, "Cuisine type is required."),
   servings: z.coerce.number({ invalid_type_error: "Servings must be a number" }).int().min(1, "Servings must be at least 1."),
-  main_image_url: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
+  main_image: z.any().optional(),
   ingredients: z.array(z.object({
     name: z.string().min(1, "Ingredient name is required."),
     quantity: z.coerce.number({ invalid_type_error: "Quantity must be a number" }).min(0.01, "Quantity must be positive."),
@@ -47,12 +47,13 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
   const defaultValues = isEditMode && recipe ? {
       ...recipe,
       steps: recipe.steps.map(s => ({ instruction: s.instruction })),
+      main_image: undefined,
   } : {
       title: "",
       description: "",
       cuisine_type: "",
       servings: 4,
-      main_image_url: "",
+      main_image: undefined,
       ingredients: [{ name: "", quantity: 1, unit: "" }],
       steps: [{ instruction: "" }],
   }
@@ -74,9 +75,27 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
 
   function onSubmit(data: RecipeFormValues) {
     startTransition(async () => {
+      const formData = new FormData();
+      
+      Object.entries(data).forEach(([key, value]) => {
+          if (key === 'ingredients' || key === 'steps') {
+            formData.append(key, JSON.stringify(value));
+          } else if (key === 'main_image' && value instanceof FileList) {
+             if (value.length > 0) {
+               formData.append(key, value[0]);
+             }
+          } else if (value !== undefined && value !== null) {
+              formData.append(key, String(value));
+          }
+      });
+      
+      if (isEditMode && recipe) {
+          formData.append('existing_main_image_url', recipe.main_image_url);
+      }
+
       const result = isEditMode && recipe 
-        ? await updateRecipeAction(recipe.id, data)
-        : await createRecipe(data);
+        ? await updateRecipeAction(recipe.id, formData)
+        : await createRecipe(formData);
 
       if (result.error) {
         toast({
@@ -84,17 +103,22 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
           description: result.error,
           variant: "destructive",
         });
+        if (result.validationErrors) {
+            Object.entries(result.validationErrors).forEach(([field, errors]) => {
+               form.setError(field as keyof RecipeFormValues, { message: (errors as string[]).join(', ')})
+            });
+        }
       } else if (result.data) {
         toast({
           title: `Recipe ${isEditMode ? 'Updated' : 'Submitted'}!`,
           description: `Your recipe has been ${isEditMode ? 'updated' : 'saved'} successfully.`,
         });
-        // We are now revalidating the path in the server action, so router.refresh() is not strictly needed here
-        // But we still want to navigate the user.
         router.push(`/recipe/${result.data.id}`);
       }
     });
   }
+  
+  const imageRef = form.register("main_image");
 
   return (
     <Form {...form}>
@@ -134,13 +158,19 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
                 </FormItem>
               )} />
             </div>
-            <FormField control={form.control} name="main_image_url" render={({ field }) => (
+            <FormField control={form.control} name="main_image" render={({ field }) => (
               <FormItem>
-                <FormLabel>Main Image URL</FormLabel>
-                <FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl>
+                <FormLabel>Main Image</FormLabel>
+                 <FormControl><Input type="file" {...imageRef} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
+             {isEditMode && recipe?.main_image_url && (
+                <div>
+                    <p className="text-sm text-muted-foreground mb-2">Current Image:</p>
+                    <img src={recipe.main_image_url} alt={recipe.title} className="w-48 h-auto rounded-md" />
+                </div>
+            )}
           </CardContent>
         </Card>
         
@@ -188,7 +218,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
         <Card>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Steps</CardTitle>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
                 {stepFields.map((field, index) => (
                     <div key={field.id} className="flex gap-2 items-start">

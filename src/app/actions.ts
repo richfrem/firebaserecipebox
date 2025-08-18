@@ -5,6 +5,9 @@ import { addRecipe, updateRecipe } from '@/lib/mock-data';
 import type { Recipe } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Readable } from 'stream';
 
 const scaleActionInputSchema = z.object({
   ingredients: z.array(z.object({
@@ -43,7 +46,7 @@ const recipeFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters long."),
   cuisine_type: z.string().min(2, "Cuisine type is required."),
   servings: z.coerce.number({ invalid_type_error: "Servings must be a number" }).int().min(1, "Servings must be at least 1."),
-  main_image_url: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
+  main_image: z.instanceof(File).optional(),
   ingredients: z.array(z.object({
     name: z.string().min(1, "Ingredient name is required."),
     quantity: z.coerce.number({ invalid_type_error: "Quantity must be a number" }).min(0.01, "Quantity must be positive."),
@@ -54,25 +57,59 @@ const recipeFormSchema = z.object({
   })).min(1, "At least one step is required."),
 });
 
-type RecipeFormValues = z.infer<typeof recipeFormSchema>;
-
 type ActionResponse = {
   data?: Recipe;
   error?: string;
+  validationErrors?: any;
 };
 
-export async function createRecipe(input: RecipeFormValues): Promise<ActionResponse> {
-    const parsedInput = recipeFormSchema.safeParse(input);
+async function uploadImageAndGetURL(image: File) {
+    if (!image || image.size === 0) return null;
+
+    try {
+        const storageRef = ref(storage, `recipes/${Date.now()}_${image.name}`);
+        const imageBuffer = await image.arrayBuffer();
+        await uploadBytes(storageRef, imageBuffer, { contentType: image.type });
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+    } catch(error) {
+        console.error("Error uploading image:", error);
+        return null;
+    }
+}
+
+
+export async function createRecipe(formData: FormData): Promise<ActionResponse> {
+    const rawData = Object.fromEntries(formData.entries());
+    const ingredients = JSON.parse(rawData.ingredients as string);
+    const steps = JSON.parse(rawData.steps as string);
+
+    const parsedInput = recipeFormSchema.safeParse({
+        ...rawData,
+        servings: parseInt(rawData.servings as string, 10),
+        main_image: rawData.main_image,
+        ingredients,
+        steps,
+    });
+
 
     if (!parsedInput.success) {
-        return { error: 'Invalid input. Please check your recipe details.' };
+        return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
     
     try {
+        let imageUrl = 'https://placehold.co/1200x800.png';
+        if (parsedInput.data.main_image && parsedInput.data.main_image.size > 0) {
+            const uploadedUrl = await uploadImageAndGetURL(parsedInput.data.main_image);
+            if (uploadedUrl) {
+                imageUrl = uploadedUrl;
+            }
+        }
+
         const newRecipeData = {
             ...parsedInput.data,
+            main_image_url: imageUrl,
             user_id: 'user-1', // Mock user id
-            main_image_url: parsedInput.data.main_image_url || 'https://placehold.co/1200x800.png',
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
                 id: `s-new-${index}`,
@@ -96,18 +133,38 @@ export async function createRecipe(input: RecipeFormValues): Promise<ActionRespo
     }
 }
 
-export async function updateRecipeAction(id: string, input: RecipeFormValues): Promise<ActionResponse> {
-    const parsedInput = recipeFormSchema.safeParse(input);
+export async function updateRecipeAction(id: string, formData: FormData): Promise<ActionResponse> {
+    const rawData = Object.fromEntries(formData.entries());
+    const ingredients = JSON.parse(rawData.ingredients as string);
+    const steps = JSON.parse(rawData.steps as string);
+
+    const parsedInput = recipeFormSchema.safeParse({
+        ...rawData,
+        servings: parseInt(rawData.servings as string, 10),
+        main_image: rawData.main_image,
+        ingredients,
+        steps,
+    });
+
 
     if (!parsedInput.success) {
-        return { error: 'Invalid input. Please check your recipe details.' };
+        return { error: 'Invalid input. Please check your recipe details.', validationErrors: parsedInput.error.flatten().fieldErrors };
     }
     
     try {
+        let imageUrl = rawData.existing_main_image_url as string || 'https://placehold.co/1200x800.png';
+
+        if (parsedInput.data.main_image && parsedInput.data.main_image.size > 0) {
+            const uploadedUrl = await uploadImageAndGetURL(parsedInput.data.main_image);
+            if (uploadedUrl) {
+                imageUrl = uploadedUrl;
+            }
+        }
+        
         const updatedRecipeData = {
             ...parsedInput.data,
+            main_image_url: imageUrl,
             user_id: 'user-1', // Mock user id
-            main_image_url: parsedInput.data.main_image_url || 'https://placehold.co/1200x800.png',
             data_ai_hint: parsedInput.data.title.toLowerCase().split(' ').slice(0,2).join(' '),
             steps: parsedInput.data.steps.map((step, index) => ({
                 id: `s-upd-${id}-${index}`,
