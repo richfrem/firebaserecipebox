@@ -3,7 +3,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, MicrosoftAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -23,7 +23,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const googleProvider = new GoogleAuthProvider();
-const microsoftProvider = new MicrosoftAuthProvider();
+const microsoftProvider = new OAuthProvider('microsoft.com');
 
 
 export { app, storage, db, auth, googleProvider, microsoftProvider };
