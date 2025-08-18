@@ -3,14 +3,13 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, User } from 'firebase/auth';
-import { auth, googleProvider, microsoftProvider } from '@/lib/firebase';
+import { auth, googleProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
-  signInWithMicrosoft: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -40,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = () => handleSignIn(googleProvider);
-  const signInWithMicrosoft = () => handleSignIn(microsoftProvider);
 
   const signOut = async () => {
     try {
@@ -51,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = { user, loading, signInWithGoogle, signInWithMicrosoft, signOut };
+  const value = { user, loading, signInWithGoogle, signOut };
 
   return (
     <AuthContext.Provider value={value}>
