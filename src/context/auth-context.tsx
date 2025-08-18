@@ -4,7 +4,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut, 
   User, 
   AuthProvider as FirebaseAuthProvider,
@@ -35,21 +36,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check for redirect result
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          toast({ title: 'Sign-in Successful', description: `Welcome, ${result.user.displayName}!` });
+          router.push('/');
+        }
+      })
+      .catch((error) => {
+        console.error("Authentication redirect result error:", error);
+        toast({
+          title: 'Authentication Error',
+          description: error.message || 'An unknown error occurred during redirect.',
+          variant: 'destructive',
+        });
+      });
+      
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router, toast]);
 
   const handleSignInWithProvider = async (provider: FirebaseAuthProvider) => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      toast({ title: 'Sign-in Successful', description: `Welcome, ${result.user.displayName}!` });
-      router.push('/');
+      await signInWithRedirect(auth, provider);
+      // No need to do anything here, the useEffect will handle the result
     } catch (error: any) {
-      console.error("Authentication popup error:", error);
+      console.error("Authentication redirect initiation error:", error);
       toast({
           title: 'Authentication Error',
           description: error.message || 'An unknown error occurred.',
