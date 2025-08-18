@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { GoogleIcon, MicrosoftIcon } from "@/components/icons"
+import { GoogleIcon } from "@/components/icons"
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -17,7 +17,7 @@ import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 
 export default function SubscribePage() {
-  const { signInWithGoogle, signInWithMicrosoft, user } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +37,6 @@ export default function SubscribePage() {
         <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Button onClick={signInWithGoogle}><GoogleIcon className="mr-2 h-5 w-5" /> Sign up with Google</Button>
-              <Button onClick={signInWithMicrosoft}><MicrosoftIcon className="mr-2 h-5 w-5" /> Sign up with Microsoft</Button>
             </div>
             
             <div className="flex items-center gap-4">
