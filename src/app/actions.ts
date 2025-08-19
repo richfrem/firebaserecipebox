@@ -231,77 +231,100 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 // --- DATA FETCHING ACTIONS ---
 
 export async function getRecipes(): Promise<Recipe[]> {
-    const recipesCollectionRef = adminDb.collection('recipes');
-    const snapshot = await recipesCollectionRef.limit(20).get();
+    try {
+        const recipesCollectionRef = adminDb.collection('recipes');
+        const snapshot = await recipesCollectionRef.limit(20).get();
 
-    const recipes = await Promise.all(snapshot.docs.map(async (doc) => {
-        const data = doc.data();
-        const recipe: Recipe = {
-            id: doc.id,
-            user_id: data.user_id,
-            title: data.title,
-            description: data.description,
-            cuisine_type: data.cuisine_type,
-            servings: data.servings,
-            main_image_url: data.main_image_url,
-            data_ai_hint: data.data_ai_hint,
-            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
-            ingredients: data.ingredients || [],
-            steps: data.steps || [],
-            author: undefined,
-        };
-
-        if (data.user_id) {
-            try {
-                const userDoc = await adminDb.collection('users').doc(data.user_id).get();
-                if (userDoc.exists) {
-                    recipe.author = userDoc.data() as Profile;
-                }
-            } catch (error) {
-                console.error(`Failed to fetch author for recipe ${recipe.id}`, error);
-                recipe.author = { id: data.user_id, username: 'Unknown Chef' };
-            }
+        if (snapshot.empty) {
+            return [];
         }
-        return recipe;
-    }));
 
-    return recipes;
+        const recipes = await Promise.all(snapshot.docs.map(async (doc) => {
+            const data = doc.data();
+            const recipe: Recipe = {
+                id: doc.id,
+                user_id: data.user_id,
+                title: data.title,
+                description: data.description,
+                cuisine_type: data.cuisine_type,
+                servings: data.servings,
+                main_image_url: data.main_image_url,
+                data_ai_hint: data.data_ai_hint,
+                created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
+                ingredients: data.ingredients || [],
+                steps: data.steps || [],
+                author: undefined,
+            };
+
+            if (data.user_id) {
+                try {
+                    const userDoc = await adminDb.collection('users').doc(data.user_id).get();
+                    if (userDoc.exists) {
+                        recipe.author = userDoc.data() as Profile;
+                    }
+                } catch (error) {
+                    console.error(`Failed to fetch author for recipe ${recipe.id}`, error);
+                    recipe.author = { id: data.user_id, username: 'Unknown Chef' };
+                }
+            }
+            return recipe;
+        }));
+
+        return recipes;
+    } catch (error: any) {
+        if (error.code === 5 || error.code === 'NOT_FOUND') {
+            console.log("Firestore database not found. Please create a database in the Firebase console.");
+            return [];
+        }
+        console.error("Error fetching recipes:", error);
+        throw error;
+    }
 }
 
 
 export async function getRecipeById(id: string): Promise<Recipe | undefined> {
-    const docRef = adminDb.collection('recipes').doc(id);
-    const docSnap = await docRef.get();
+    try {
+        const docRef = adminDb.collection('recipes').doc(id);
+        const docSnap = await docRef.get();
 
-    if (docSnap.exists) {
-        const data = docSnap.data();
-        if (!data) return undefined;
+        if (docSnap.exists) {
+            const data = docSnap.data();
+            if (!data) return undefined;
 
-        const recipe: Recipe = {
-            id: docSnap.id,
-            user_id: data.user_id,
-            title: data.title,
-            description: data.description,
-            cuisine_type: data.cuisine_type,
-            servings: data.servings,
-            main_image_url: data.main_image_url,
-            data_ai_hint: data.data_ai_hint,
-            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
-            ingredients: data.ingredients || [],
-            steps: data.steps || [],
-        };
-        
-        if (recipe.user_id) {
-            const userDoc = await adminDb.collection('users').doc(recipe.user_id).get();
-            if (userDoc.exists) {
-                recipe.author = userDoc.data() as Profile;
-            } else {
-                recipe.author = { id: recipe.user_id, username: 'Anonymous Chef' };
+            const recipe: Recipe = {
+                id: docSnap.id,
+                user_id: data.user_id,
+                title: data.title,
+                description: data.description,
+                cuisine_type: data.cuisine_type,
+                servings: data.servings,
+                main_image_url: data.main_image_url,
+                data_ai_hint: data.data_ai_hint,
+                created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
+                ingredients: data.ingredients || [],
+                steps: data.steps || [],
+            };
+            
+            if (recipe.user_id) {
+                const userDoc = await adminDb.collection('users').doc(recipe.user_id).get();
+                if (userDoc.exists) {
+                    recipe.author = userDoc.data() as Profile;
+                } else {
+                    recipe.author = { id: recipe.user_id, username: 'Anonymous Chef' };
+                }
             }
+            return recipe;
+        } else {
+            return undefined;
         }
-        return recipe;
-    } else {
-        return undefined;
+    } catch (error: any) {
+        if (error.code === 5 || error.code === 'NOT_FOUND') {
+            console.log("Firestore database not found. Please create a database in the Firebase console.");
+            return undefined;
+        }
+        console.error(`Error fetching recipe by id ${id}:`, error);
+        throw error;
     }
 };
 
+    
