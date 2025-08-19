@@ -1,29 +1,54 @@
-// This is a no-op dynamic import that serves as a hint to the Next.js bundler.
-// It forces the bundler to treat this module as a dynamic boundary, which is
-// essential for preventing the 'INTERNAL' error when using 'firebase-admin'.
-import('firebase-admin');
-
 import * as admin from 'firebase-admin';
 
-// Initialize the app if it's not already initialized.
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
-    console.log("Firebase Admin SDK initialized successfully.");
-  } catch (error: any) {
-    console.error("Firebase Admin SDK initialization error:", error);
-    // You might want to throw the error or handle it in a way that
-    // your application can gracefully fail.
+// The dynamic import workaround - this is still needed and correct.
+import('firebase-admin');
+
+// We will store the initialized services in this variable.
+let adminServices: {
+  db: admin.firestore.Firestore;
+  storage: admin.storage.Storage;
+  auth: admin.auth.Auth;
+} | null = null;
+
+/**
+ * A singleton function to get the initialized Firebase Admin SDK services.
+ * It initializes the app on the first call and returns the existing services
+ * on subsequent calls.
+ */
+export function getFirebaseAdmin() {
+  // If the services are already initialized, return them immediately.
+  if (adminServices) {
+    return adminServices;
   }
+
+  // If not initialized, proceed with initialization.
+  if (!admin.apps.length) {
+    try {
+      const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+      if (!storageBucket) {
+        throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set.");
+      }
+      
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        storageBucket: storageBucket,
+      });
+      console.log("Firebase Admin SDK initialized successfully.");
+
+    } catch (error: any) {
+      // If initialization fails, log the detailed error and stop everything.
+      console.error("CRITICAL: Firebase Admin SDK initialization failed.", error.stack);
+      // This throw is important to prevent the app from continuing in a broken state.
+      throw new Error("Could not initialize Firebase Admin SDK. See server logs for details.");
+    }
+  }
+
+  // Once initialized, create the service instances and store them.
+  adminServices = {
+    db: admin.firestore(),
+    storage: admin.storage(),
+    auth: admin.auth(),
+  };
+
+  return adminServices;
 }
-
-const adminDb = admin.firestore();
-const adminStorage = admin.storage();
-const adminAuth = admin.auth();
-
-export { admin, adminDb, adminStorage, adminAuth };
-
-    
