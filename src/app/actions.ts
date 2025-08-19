@@ -1,29 +1,12 @@
 
 "use server";
 
-import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
-import type { Recipe, Profile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { FieldValue } from 'firebase-admin/firestore';
-import * as admin from 'firebase-admin';
-
-// --- START: FIREBASE ADMIN INITIALIZATION ---
-// This is a robust way to initialize the Firebase Admin SDK in a Next.js environment.
-// It checks if the app is already initialized to prevent errors during hot-reloading.
-if (!admin.apps.length) {
-  // In a managed environment like Firebase Studio, Application Default Credentials (ADC)
-  // are used automatically. For local development, you would set the
-  // GOOGLE_APPLICATION_CREDENTIALS environment variable.
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const adminDb = admin.firestore();
-const adminStorage = admin.storage();
-// --- END: FIREBASE ADMIN INITIALIZATION ---
+import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
+import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
 
 
 const scaleActionInputSchema = z.object({
