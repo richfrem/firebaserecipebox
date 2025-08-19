@@ -1,7 +1,51 @@
+
 import RecipeCard from '@/components/recipe-card';
-import { getRecipes } from '@/lib/database';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { adminDb } from '@/lib/firebase-admin';
+import type { Recipe, Profile } from '@/lib/types';
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+
+
+async function getRecipes(): Promise<Recipe[]> {
+    const recipesCollectionRef = adminDb.collection('recipes');
+    const q = recipesCollectionRef.orderBy('created_at', 'desc').limit(20);
+    const snapshot = await q.get();
+
+    const recipes = await Promise.all(snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const recipe: Recipe = {
+            id: doc.id,
+            user_id: data.user_id,
+            title: data.title,
+            description: data.description,
+            cuisine_type: data.cuisine_type,
+            servings: data.servings,
+            main_image_url: data.main_image_url,
+            data_ai_hint: data.data_ai_hint,
+            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
+            ingredients: data.ingredients || [],
+            steps: data.steps || [],
+            author: undefined,
+        };
+
+        if (data.user_id) {
+            try {
+                const userDoc = await adminDb.collection('users').doc(data.user_id).get();
+                if (userDoc.exists) {
+                    recipe.author = userDoc.data() as Profile;
+                }
+            } catch (error) {
+                console.error(`Failed to fetch author for recipe ${recipe.id}`, error);
+                recipe.author = { id: data.user_id, username: 'Unknown Chef' };
+            }
+        }
+        return recipe;
+    }));
+
+    return recipes;
+}
+
 
 export default async function Home() {
   const recipes = await getRecipes();
