@@ -1,7 +1,5 @@
-import * as admin from 'firebase-admin';
 
-// The dynamic import workaround - this is still needed and correct.
-import('firebase-admin');
+import type * as admin from 'firebase-admin';
 
 // We will store the initialized services in this variable.
 let adminServices: {
@@ -13,13 +11,17 @@ let adminServices: {
 /**
  * A singleton function to get the initialized Firebase Admin SDK services.
  * It initializes the app on the first call and returns the existing services
- * on subsequent calls.
+ * on subsequent calls. This function is async because it uses a dynamic import
+ * to prevent the Next.js bundler from breaking the admin SDK.
  */
-export function getFirebaseAdmin() {
+export async function getFirebaseAdmin() {
   // If the services are already initialized, return them immediately.
   if (adminServices) {
     return adminServices;
   }
+  
+  // Use a dynamic import to prevent the Next.js bundler from breaking the SDK
+  const admin = (await import('firebase-admin')).default;
 
   // If not initialized, proceed with initialization.
   if (!admin.apps.length) {

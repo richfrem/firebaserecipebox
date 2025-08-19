@@ -68,7 +68,7 @@ async function uploadImageAndGetURL(image: File, userId: string): Promise<string
     if (!image || image.size === 0) return null;
 
     try {
-        const { storage } = getFirebaseAdmin();
+        const { storage } = await getFirebaseAdmin();
         const bucket = storage.bucket();
         const timestamp = Date.now();
         const fileName = `${timestamp}_${image.name}`;
@@ -97,7 +97,7 @@ async function uploadImageAndGetURL(image: File, userId: string): Promise<string
 
 
 export async function createRecipe(formData: FormData): Promise<ActionResponse> {
-    const { db } = getFirebaseAdmin();
+    const { db } = await getFirebaseAdmin();
     const rawData = Object.fromEntries(formData.entries());
     const ingredients = JSON.parse(rawData.ingredients as string);
     const steps = JSON.parse(rawData.steps as string);
@@ -160,7 +160,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
 }
 
 export async function updateRecipeAction(id: string, formData: FormData): Promise<ActionResponse> {
-    const { db } = getFirebaseAdmin();
+    const { db } = await getFirebaseAdmin();
     const rawData = Object.fromEntries(formData.entries());
     const ingredients = JSON.parse(rawData.ingredients as string);
     const steps = JSON.parse(rawData.steps as string);
@@ -225,7 +225,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 
 export async function getRecipes(): Promise<Recipe[]> {
     try {
-        const { db } = getFirebaseAdmin();
+        const { db } = await getFirebaseAdmin();
         const recipesCollectionRef = db.collection('recipes');
         const snapshot = await recipesCollectionRef.limit(20).get();
 
@@ -252,7 +252,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
             if (data.user_id) {
                 try {
-                    const { db: userDb } = getFirebaseAdmin();
+                    const { db: userDb } = await getFirebaseAdmin();
                     const userDoc = await userDb.collection('users').doc(data.user_id).get();
                     if (userDoc.exists) {
                         recipe.author = userDoc.data() as Profile;
@@ -279,7 +279,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
 export async function getRecipeById(id: string): Promise<Recipe | undefined> {
     try {
-        const { db } = getFirebaseAdmin();
+        const { db } = await getFirebaseAdmin();
         const docRef = db.collection('recipes').doc(id);
         const docSnap = await docRef.get();
 
@@ -302,7 +302,7 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
             };
             
             if (recipe.user_id) {
-                const { db: userDb } = getFirebaseAdmin();
+                const { db: userDb } = await getFirebaseAdmin();
                 const userDoc = await userDb.collection('users').doc(recipe.user_id).get();
                 if (userDoc.exists) {
                     recipe.author = userDoc.data() as Profile;
@@ -323,5 +323,3 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         throw error;
     }
 };
-
-    
