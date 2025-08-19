@@ -3,29 +3,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
-
-
-function initializeFirebaseAdmin() {
-  if (!admin.apps.length) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-      });
-      console.log("Firebase Admin SDK initialized successfully.");
-    } catch (error) {
-      console.error("Firebase Admin SDK initialization error:", error);
-    }
-  }
-  return {
-    db: admin.firestore(),
-    storage: admin.storage(),
-    auth: admin.auth(),
-  };
-}
+import { adminDb, adminStorage, adminAuth, admin } from '@/lib/firebase-admin';
 
 
 const scaleActionInputSchema = z.object({
@@ -87,8 +67,7 @@ async function uploadImageAndGetURL(image: File, userId: string): Promise<string
     if (!image || image.size === 0) return null;
 
     try {
-        const { storage } = initializeFirebaseAdmin();
-        const bucket = storage.bucket();
+        const bucket = adminStorage.bucket();
         const timestamp = Date.now();
         const fileName = `${timestamp}_${image.name}`;
         const filePath = `recipes/${userId}/${fileName}`;
@@ -146,7 +125,6 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
             }
         }
         
-        const { db } = initializeFirebaseAdmin();
         const recipeDataForDb = {
             ...parsedInput.data,
             main_image_url: imageUrl,
@@ -158,7 +136,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
             created_at: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        const newRecipeRef = await db.collection('recipes').add(recipeDataForDb);
+        const newRecipeRef = await adminDb.collection('recipes').add(recipeDataForDb);
         
         const finalRecipe: Recipe = {
             ...recipeDataForDb,
@@ -209,7 +187,6 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }
         }
         
-        const { db } = initializeFirebaseAdmin();
         const updatedRecipeData = {
             ...parsedInput.data,
             main_image_url: imageUrl || 'https://placehold.co/1200x800.png',
@@ -220,7 +197,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }))
         };
         
-        await db.collection('recipes').doc(id).update(updatedRecipeData);
+        await adminDb.collection('recipes').doc(id).update(updatedRecipeData);
 
         const finalRecipe: Recipe = {
              id: id,
@@ -244,8 +221,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 
 export async function getRecipes(): Promise<Recipe[]> {
     try {
-        const { db } = initializeFirebaseAdmin();
-        const recipesCollectionRef = db.collection('recipes');
+        const recipesCollectionRef = adminDb.collection('recipes');
         const snapshot = await recipesCollectionRef.limit(20).get();
 
         if (snapshot.empty) {
@@ -271,8 +247,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
             if (data.user_id) {
                 try {
-                    const { db: userDb } = initializeFirebaseAdmin();
-                    const userDoc = await userDb.collection('users').doc(data.user_id).get();
+                    const userDoc = await adminDb.collection('users').doc(data.user_id).get();
                     if (userDoc.exists) {
                         recipe.author = userDoc.data() as Profile;
                     }
@@ -298,8 +273,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
 export async function getRecipeById(id: string): Promise<Recipe | undefined> {
     try {
-        const { db } = initializeFirebaseAdmin();
-        const docRef = db.collection('recipes').doc(id);
+        const docRef = adminDb.collection('recipes').doc(id);
         const docSnap = await docRef.get();
 
         if (docSnap.exists) {
@@ -321,8 +295,7 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
             };
             
             if (recipe.user_id) {
-                const { db: userDb } = initializeFirebaseAdmin();
-                const userDoc = await userDb.collection('users').doc(recipe.user_id).get();
+                const userDoc = await adminDb.collection('users').doc(recipe.user_id).get();
                 if (userDoc.exists) {
                     recipe.author = userDoc.data() as Profile;
                 } else {
@@ -342,3 +315,5 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         throw error;
     }
 };
+
+    

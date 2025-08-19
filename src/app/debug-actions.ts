@@ -27,3 +27,5 @@ export async function logCurrentServiceAccount() {
     return `Failed to get service account. Check server logs. Error: ${error.message}`;
   }
 }
+
+    
