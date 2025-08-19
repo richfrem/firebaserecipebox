@@ -232,8 +232,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 
 export async function getRecipes(): Promise<Recipe[]> {
     const recipesCollectionRef = adminDb.collection('recipes');
-    const q = recipesCollectionRef.orderBy('created_at', 'desc').limit(20);
-    const snapshot = await q.get();
+    const snapshot = await recipesCollectionRef.limit(20).get();
 
     const recipes = await Promise.all(snapshot.docs.map(async (doc) => {
         const data = doc.data();
@@ -305,3 +304,4 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         return undefined;
     }
 };
+
