@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
-import { adminDb, adminStorage, adminAuth, admin } from '@/lib/firebase-admin';
+import { admin, adminDb, adminStorage } from '@/lib/firebase-admin';
 
 
 const scaleActionInputSchema = z.object({

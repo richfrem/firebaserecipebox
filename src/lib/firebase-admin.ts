@@ -1,4 +1,3 @@
-
 // This is a no-op dynamic import that serves as a hint to the Next.js bundler.
 // It forces the bundler to treat this module as a dynamic boundary, which is
 // essential for preventing the 'INTERNAL' error when using 'firebase-admin'.
