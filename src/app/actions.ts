@@ -4,9 +4,28 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import * as admin from 'firebase-admin';
-import type { FieldValue } from 'firebase-admin/firestore';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
+
+
+function initializeFirebaseAdmin() {
+  if (!admin.apps.length) {
+    try {
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      });
+      console.log("Firebase Admin SDK initialized successfully.");
+    } catch (error) {
+      console.error("Firebase Admin SDK initialization error:", error);
+    }
+  }
+  return {
+    db: admin.firestore(),
+    storage: admin.storage(),
+    auth: admin.auth(),
+  };
+}
 
 
 const scaleActionInputSchema = z.object({
@@ -62,20 +81,6 @@ type ActionResponse = {
   error?: string;
   validationErrors?: any;
 };
-
-// Function to initialize Firebase Admin SDK
-function initializeFirebaseAdmin() {
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
-  }
-  return {
-    db: admin.firestore(),
-    storage: admin.storage(),
-  };
-}
 
 
 async function uploadImageAndGetURL(image: File, userId: string): Promise<string | null> {
@@ -266,7 +271,8 @@ export async function getRecipes(): Promise<Recipe[]> {
 
             if (data.user_id) {
                 try {
-                    const userDoc = await db.collection('users').doc(data.user_id).get();
+                    const { db: userDb } = initializeFirebaseAdmin();
+                    const userDoc = await userDb.collection('users').doc(data.user_id).get();
                     if (userDoc.exists) {
                         recipe.author = userDoc.data() as Profile;
                     }
@@ -315,7 +321,8 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
             };
             
             if (recipe.user_id) {
-                const userDoc = await db.collection('users').doc(recipe.user_id).get();
+                const { db: userDb } = initializeFirebaseAdmin();
+                const userDoc = await userDb.collection('users').doc(recipe.user_id).get();
                 if (userDoc.exists) {
                     recipe.author = userDoc.data() as Profile;
                 } else {
@@ -335,27 +342,3 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         throw error;
     }
 };
-
-import { GoogleAuth } from 'google-auth-library';
-
-export async function logCurrentServiceAccount() {
-  'use server';
-  try {
-    const auth = new GoogleAuth({
-      scopes: 'https://www.googleapis.com/auth/cloud-platform'
-    });
-    const client = await auth.getClient();
-    // This is the important part
-    // @ts-ignore
-    const serviceAccountEmail = client.email;
-    
-    console.log('--- THIS CODE IS RUNNING AS ---');
-    console.log('Service Account Email:', serviceAccountEmail);
-    console.log('------------------------------');
-
-    return `Successfully logged the service account: ${serviceAccountEmail}`;
-  } catch (error: any) {
-    console.error("Failed to get service account:", error.message);
-    return `Error: ${error.message}`;
-  }
-}
