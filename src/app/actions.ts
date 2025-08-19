@@ -7,6 +7,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
+import { GoogleAuth } from 'google-auth-library';
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -327,4 +328,25 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
     }
 };
 
+export async function logCurrentServiceAccount() {
+  'use server';
+  try {
+    const auth = new GoogleAuth({
+      scopes: 'https://www.googleapis.com/auth/cloud-platform'
+    });
+    const client = await auth.getClient();
+    // This is the important part
+    // @ts-ignore
+    const serviceAccountEmail = client.email;
+    
+    console.log('--- THIS CODE IS RUNNING AS ---');
+    console.log('Service Account Email:', serviceAccountEmail);
+    console.log('------------------------------');
+
+    return `Successfully logged the service account: ${serviceAccountEmail}`;
+  } catch (error: any) {
+    console.error("Failed to get service account:", error.message);
+    return `Error: ${error.message}`;
+  }
+}
     
