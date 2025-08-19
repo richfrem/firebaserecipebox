@@ -58,7 +58,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
       main_image: undefined,
       ingredients: [{ name: "", quantity: 1, unit: "" }],
       steps: [{ instruction: "" }],
-  }
+  };
 
   const form = useForm<RecipeFormValues>({
     resolver: zodResolver(recipeFormSchema),
@@ -77,7 +77,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
   
   const imageRef = form.register("main_image");
 
-  function onSubmit(data: RecipeFormValues) {
+  async function onSubmit(data: RecipeFormValues) {
     if (!user) {
         toast({ title: "Authentication Error", description: "You must be logged in to save a recipe.", variant: "destructive"});
         return;
