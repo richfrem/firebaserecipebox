@@ -17,7 +17,6 @@ import { auth, googleProvider, microsoftProvider } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { EmailFormValues } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { adminDb } from '@/lib/firebase-admin';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -39,6 +38,7 @@ async function createUserProfile(user: User) {
         username: user.displayName || user.email?.split('@')[0] || 'Anonymous Chef',
         avatar_url: user.photoURL || `https://placehold.co/100x100.png`,
     };
+    // Use the client-side db instance here
     await setDoc(doc(db, "users", user.uid), userProfile);
 }
 

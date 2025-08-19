@@ -2,11 +2,29 @@
 "use server";
 
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput, ScaleRecipeIngredientsOutput } from '@/ai/flows/scale-recipe-ingredients';
-import type { Recipe } from '@/lib/types';
+import type { Recipe, Profile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
+
+// --- START: FIREBASE ADMIN INITIALIZATION ---
+// This is a robust way to initialize the Firebase Admin SDK in a Next.js environment.
+// It checks if the app is already initialized to prevent errors during hot-reloading.
+if (!admin.apps.length) {
+  // In a managed environment like Firebase Studio, Application Default Credentials (ADC)
+  // are used automatically. For local development, you would set the
+  // GOOGLE_APPLICATION_CREDENTIALS environment variable.
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  });
+}
+
+const adminDb = admin.firestore();
+const adminStorage = admin.storage();
+// --- END: FIREBASE ADMIN INITIALIZATION ---
+
 
 const scaleActionInputSchema = z.object({
   ingredients: z.array(z.object({
@@ -80,7 +98,6 @@ async function uploadImageAndGetURL(image: File, userId: string): Promise<string
           },
         });
 
-        // Use a far-future expiration date for the signed URL
         const [publicUrl] = await file.getSignedUrl({
           action: 'read',
           expires: '03-09-2491', 
@@ -215,3 +232,82 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
         return { error: `Failed to update the recipe. ${error.message}` };
     }
 }
+
+
+// --- DATA FETCHING ACTIONS ---
+
+export async function getRecipes(): Promise<Recipe[]> {
+    const recipesCollectionRef = adminDb.collection('recipes');
+    const q = recipesCollectionRef.orderBy('created_at', 'desc').limit(20);
+    const snapshot = await q.get();
+
+    const recipes = await Promise.all(snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const recipe: Recipe = {
+            id: doc.id,
+            user_id: data.user_id,
+            title: data.title,
+            description: data.description,
+            cuisine_type: data.cuisine_type,
+            servings: data.servings,
+            main_image_url: data.main_image_url,
+            data_ai_hint: data.data_ai_hint,
+            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
+            ingredients: data.ingredients || [],
+            steps: data.steps || [],
+            author: undefined,
+        };
+
+        if (data.user_id) {
+            try {
+                const userDoc = await adminDb.collection('users').doc(data.user_id).get();
+                if (userDoc.exists) {
+                    recipe.author = userDoc.data() as Profile;
+                }
+            } catch (error) {
+                console.error(`Failed to fetch author for recipe ${recipe.id}`, error);
+                recipe.author = { id: data.user_id, username: 'Unknown Chef' };
+            }
+        }
+        return recipe;
+    }));
+
+    return recipes;
+}
+
+
+export async function getRecipeById(id: string): Promise<Recipe | undefined> {
+    const docRef = adminDb.collection('recipes').doc(id);
+    const docSnap = await docRef.get();
+
+    if (docSnap.exists) {
+        const data = docSnap.data();
+        if (!data) return undefined;
+
+        const recipe: Recipe = {
+            id: docSnap.id,
+            user_id: data.user_id,
+            title: data.title,
+            description: data.description,
+            cuisine_type: data.cuisine_type,
+            servings: data.servings,
+            main_image_url: data.main_image_url,
+            data_ai_hint: data.data_ai_hint,
+            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
+            ingredients: data.ingredients || [],
+            steps: data.steps || [],
+        };
+        
+        if (recipe.user_id) {
+            const userDoc = await adminDb.collection('users').doc(recipe.user_id).get();
+            if (userDoc.exists) {
+                recipe.author = userDoc.data() as Profile;
+            } else {
+                recipe.author = { id: recipe.user_id, username: 'Anonymous Chef' };
+            }
+        }
+        return recipe;
+    } else {
+        return undefined;
+    }
+};

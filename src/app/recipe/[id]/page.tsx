@@ -3,51 +3,15 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import RecipeScaler from '@/components/recipe-scaler';
-import { Clock, Pencil, User, UtensilsCrossed } from 'lucide-react';
+import { Clock, Pencil, UtensilsCrossed } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { adminDb } from '@/lib/firebase-admin';
-import type { Recipe, Profile } from '@/lib/types';
+import { getRecipeById } from '../actions';
 
 export const runtime = 'nodejs';
-
-async function getRecipeById(id: string): Promise<Recipe | undefined> {
-    const docRef = adminDb.collection('recipes').doc(id);
-    const docSnap = await docRef.get();
-
-    if (docSnap.exists) {
-        const data = docSnap.data();
-        if (!data) return undefined;
-
-        const recipe: Recipe = {
-            id: docSnap.id,
-            user_id: data.user_id,
-            title: data.title,
-            description: data.description,
-            cuisine_type: data.cuisine_type,
-            servings: data.servings,
-            main_image_url: data.main_image_url,
-            data_ai_hint: data.data_ai_hint,
-            created_at: data.created_at?.toDate().toISOString() || new Date().toISOString(),
-            ingredients: data.ingredients || [],
-            steps: data.steps || [],
-        };
-        
-        if (recipe.user_id) {
-            const userDoc = await adminDb.collection('users').doc(recipe.user_id).get();
-            if (userDoc.exists) {
-                recipe.author = userDoc.data() as Profile;
-            } else {
-                recipe.author = { id: recipe.user_id, username: 'Anonymous Chef' };
-            }
-        }
-        return recipe;
-    } else {
-        return undefined;
-    }
-};
+export const dynamic = 'force-dynamic';
 
 export default async function RecipePage({ params }: { params: { id: string } }) {
   const recipe = await getRecipeById(params.id);
