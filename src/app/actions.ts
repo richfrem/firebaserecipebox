@@ -3,10 +3,21 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  });
+}
+
+const adminDb = admin.firestore();
+const adminStorage = admin.storage();
 
 
 const scaleActionInputSchema = z.object({
