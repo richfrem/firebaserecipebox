@@ -9,7 +9,8 @@ import('firebase-admin');
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    // --- CORRECTED LINE ---
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET, 
   });
 }
 
