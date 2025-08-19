@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase-admin';
 import type { Recipe, Profile } from '@/lib/types';
 import { notFound } from "next/navigation";
 
+export const runtime = 'nodejs';
 
 async function getRecipeById(id: string): Promise<Recipe | undefined> {
     const docRef = adminDb.collection('recipes').doc(id);

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { adminDb } from '@/lib/firebase-admin';
 import type { Recipe, Profile } from '@/lib/types';
 
+export const runtime = 'nodejs';
 
 async function getRecipeById(id: string): Promise<Recipe | undefined> {
     const docRef = adminDb.collection('recipes').doc(id);

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { adminDb } from '@/lib/firebase-admin';
 import type { Recipe, Profile } from '@/lib/types';
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 
+export const runtime = 'nodejs';
 
 async function getRecipes(): Promise<Recipe[]> {
     const recipesCollectionRef = adminDb.collection('recipes');
