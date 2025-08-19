@@ -18,8 +18,6 @@ export function getFirebaseAdmin() {
   // the tree-shaking that was causing the 'INTERNAL' error.
   const admin_dynamic: typeof admin = require('firebase-admin');
 
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-
   if (!admin_dynamic.apps.length) {
     app = admin_dynamic.initializeApp({
       credential: admin_dynamic.credential.applicationDefault(),

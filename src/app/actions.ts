@@ -4,10 +4,9 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import type { FieldValue } from 'firebase-admin/firestore';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
-import { GoogleAuth } from 'google-auth-library';
 
 
 const scaleActionInputSchema = z.object({
@@ -127,7 +126,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
             }
         }
         
-        const { db } = getFirebaseAdmin();
+        const { db, admin } = getFirebaseAdmin();
         const recipeDataForDb = {
             ...parsedInput.data,
             main_image_url: imageUrl,
@@ -136,7 +135,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
                 step_number: index + 1,
                 instruction: step.instruction,
             })),
-            created_at: FieldValue.serverTimestamp(),
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
         };
 
         const newRecipeRef = await db.collection('recipes').add(recipeDataForDb);
@@ -321,26 +320,4 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         throw error;
     }
 };
-
-export async function logCurrentServiceAccount() {
-  'use server';
-  try {
-    const auth = new GoogleAuth({
-      scopes: 'https://www.googleapis.com/auth/cloud-platform'
-    });
-    const client = await auth.getClient();
-    // This is the important part
-    // @ts-ignore
-    const serviceAccountEmail = client.email;
-    
-    console.log('--- THIS CODE IS RUNNING AS ---');
-    console.log('Service Account Email:', serviceAccountEmail);
-    console.log('------------------------------');
-
-    return `Successfully logged the service account: ${serviceAccountEmail}`;
-  } catch (error: any) {
-    console.error("Failed to get service account:", error.message);
-    return `Error: ${error.message}`;
-  }
-}
     
