@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 import type { FieldValue } from 'firebase-admin/firestore';
 import type { Recipe, Profile, ScaleRecipeIngredientsOutput } from '@/lib/types';
 import { scaleRecipeIngredients, ScaleRecipeIngredientsInput } from '@/ai/flows/scale-recipe-ingredients';
@@ -63,11 +63,26 @@ type ActionResponse = {
   validationErrors?: any;
 };
 
+// Function to initialize Firebase Admin SDK
+function initializeFirebaseAdmin() {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
+  }
+  return {
+    db: admin.firestore(),
+    storage: admin.storage(),
+  };
+}
+
+
 async function uploadImageAndGetURL(image: File, userId: string): Promise<string | null> {
     if (!image || image.size === 0) return null;
 
     try {
-        const { storage } = getFirebaseAdmin();
+        const { storage } = initializeFirebaseAdmin();
         const bucket = storage.bucket();
         const timestamp = Date.now();
         const fileName = `${timestamp}_${image.name}`;
@@ -126,7 +141,7 @@ export async function createRecipe(formData: FormData): Promise<ActionResponse> 
             }
         }
         
-        const { db, admin } = getFirebaseAdmin();
+        const { db } = initializeFirebaseAdmin();
         const recipeDataForDb = {
             ...parsedInput.data,
             main_image_url: imageUrl,
@@ -189,7 +204,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
             }
         }
         
-        const { db } = getFirebaseAdmin();
+        const { db } = initializeFirebaseAdmin();
         const updatedRecipeData = {
             ...parsedInput.data,
             main_image_url: imageUrl || 'https://placehold.co/1200x800.png',
@@ -224,7 +239,7 @@ export async function updateRecipeAction(id: string, formData: FormData): Promis
 
 export async function getRecipes(): Promise<Recipe[]> {
     try {
-        const { db } = getFirebaseAdmin();
+        const { db } = initializeFirebaseAdmin();
         const recipesCollectionRef = db.collection('recipes');
         const snapshot = await recipesCollectionRef.limit(20).get();
 
@@ -277,7 +292,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
 export async function getRecipeById(id: string): Promise<Recipe | undefined> {
     try {
-        const { db } = getFirebaseAdmin();
+        const { db } = initializeFirebaseAdmin();
         const docRef = db.collection('recipes').doc(id);
         const docSnap = await docRef.get();
 
@@ -320,4 +335,27 @@ export async function getRecipeById(id: string): Promise<Recipe | undefined> {
         throw error;
     }
 };
+
+import { GoogleAuth } from 'google-auth-library';
+
+export async function logCurrentServiceAccount() {
+  'use server';
+  try {
+    const auth = new GoogleAuth({
+      scopes: 'https://www.googleapis.com/auth/cloud-platform'
+    });
+    const client = await auth.getClient();
+    // This is the important part
+    // @ts-ignore
+    const serviceAccountEmail = client.email;
     
+    console.log('--- THIS CODE IS RUNNING AS ---');
+    console.log('Service Account Email:', serviceAccountEmail);
+    console.log('------------------------------');
+
+    return `Successfully logged the service account: ${serviceAccountEmail}`;
+  } catch (error: any) {
+    console.error("Failed to get service account:", error.message);
+    return `Error: ${error.message}`;
+  }
+}

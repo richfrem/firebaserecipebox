@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createRecipe, updateRecipeAction } from "@/app/actions";
+import { createRecipe, updateRecipeAction, logCurrentServiceAccount } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import type { Recipe } from "@/lib/types";
@@ -132,6 +132,12 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
       }
     });
   }
+  
+  const handleDebugClick = async () => {
+    console.log("Requesting service account from server...");
+    const result = await logCurrentServiceAccount();
+    alert(result); // Show the result in a browser alert
+  };
 
   return (
     <Form {...form}>
@@ -253,6 +259,14 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
                  </Button>
             </CardContent>
         </Card>
+        
+        <div className="my-4 p-4 border-2 border-dashed border-red-500">
+            <h3 className="font-bold text-lg">Debugging Area</h3>
+            <p>Click this button to find out which service account the server is using.</p>
+            <Button type="button" variant="destructive" onClick={handleDebugClick}>
+                Log Service Account
+            </Button>
+        </div>
         
         <div className="flex justify-end">
             <Button type="submit" size="lg" disabled={isPending || !user}>
